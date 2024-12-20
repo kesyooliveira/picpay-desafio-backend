@@ -1,5 +1,6 @@
 package com.br.kesyodev.picpaysimplificado.domain.user;
 
+import com.br.kesyodev.picpaysimplificado.dtos.UserDTO;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -11,6 +12,7 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 @AllArgsConstructor
+@NoArgsConstructor
 @EqualsAndHashCode(of = "id")
 public class User {
 
@@ -95,4 +97,19 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private UserType userType;
+
+
+    public User(UserDTO data) {
+        this.firstName = data.firstName();
+        this.lastName = data.lastName();
+        this.balance = data.balance();
+        this.userType = data.userType();
+        this.password = data.password();
+        this.cpf = data.cpf();
+        this.email = data.email();
+    }
+
+    public User() {
+
+    }
 }

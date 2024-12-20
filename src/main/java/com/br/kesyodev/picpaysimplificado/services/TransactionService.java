@@ -24,9 +24,12 @@ public class TransactionService {
     TransactionRepository transactionRepository;
 
     @Autowired
+    private NotificationService notificationService;
+
+    @Autowired
     private RestTemplate restTemplate;
 
-    public void createTransaction(TransactionDTO transactionDTO) throws Exception {
+    public Transaction createTransaction(TransactionDTO transactionDTO) throws Exception {
         User sender = this.userService.findUserById(transactionDTO.senderId());
         User receiver = this.userService.findUserById(transactionDTO.receiverId());
 
@@ -37,10 +40,16 @@ public class TransactionService {
             throw new Exception("Transação não autorizada");
         }
 
-        var newTransaction = Transaction.builder().amount(transactionDTO.amount())
-                .sender(sender)
-                .receiver(receiver)
-                .timestamp(LocalDateTime.now()).build();
+        Transaction newTransaction = new Transaction();
+        newTransaction.setAmount(transactionDTO.amount());
+        newTransaction.setSender(sender);
+        newTransaction.setReceiver(receiver);
+        newTransaction.setTimestamp(LocalDateTime.now());
+
+//        var newTransaction = Transaction.builder().amount(transactionDTO.amount())
+//                .sender(sender)
+//                .receiver(receiver)
+//                .timestamp(LocalDateTime.now()).build();
 
         sender.setBalance(sender.getBalance().subtract(transactionDTO.amount()));
         receiver.setBalance(receiver.getBalance().add(transactionDTO.amount()));
@@ -49,13 +58,18 @@ public class TransactionService {
         this.userService.saveUser(sender);
         this.userService.saveUser(receiver);
 
+        this.notificationService.sendNotification(sender, "Transação realizada com sucesso!");
+        this.notificationService.sendNotification(receiver, "Transação recebida com sucesso!");
+
+        return newTransaction;
     }
 
-    public boolean authorizeTransaction(User sender, BigDecimal value){
+    public boolean authorizeTransaction(User sender, BigDecimal amount){
         ResponseEntity<Map> authorizationResponse = restTemplate.getForEntity("https://util.devi.tools/api/v2/authorize", Map.class);
 
-        if(authorizationResponse.getStatusCode() == HttpStatus.OK && authorizationResponse.getBody().get("status") == "success"){
-            return true;
+        if(authorizationResponse.getStatusCode() == HttpStatus.OK){
+            String message = (String) authorizationResponse.getBody().get("status");
+            return "success".equalsIgnoreCase(message);
         }else return false;
 
     }
